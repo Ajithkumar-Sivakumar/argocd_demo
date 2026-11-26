@@ -8,6 +8,6 @@ images:
     newTag: 1.28.1
 replicas:
   - name: lab5-web
-    count: 1
+    count: 3
 patches:
   - path: configmap-patch.yaml
