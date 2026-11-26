@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: lab5-prod
+  namespace: argocd
+spec:
+  project: lab5
+  source:
+    repoURL: https://github.com/Ajithkumar-Sivakumar/argocd_demo.git
+    targetRevision: main
+    path: overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: lab5-prod
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

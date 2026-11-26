@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lab5-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+data:
+  APP_MESSAGE: "Hello from the Kustomize base"

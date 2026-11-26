@@ -1,0 +1,83 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: lab5-db-migration
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 180
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lab5-db-migration
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: python:3.13-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-u", "-c"]
+          args:
+            - |
+              import datetime
+              import os
+              import sqlite3
+              import time
+
+              def timestamp():
+                  return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+              message = os.environ["APP_MESSAGE"]
+              print(f"{timestamp()} ConfigMap loaded: {message}", flush=True)
+              print(f"{timestamp()} Starting SQLite demo migration", flush=True)
+              with sqlite3.connect("/migration/lab.db") as database:
+                  database.execute(
+                      "CREATE TABLE IF NOT EXISTS schema_migrations "
+                      "(version INTEGER PRIMARY KEY, message TEXT NOT NULL)"
+                  )
+                  database.execute(
+                      "INSERT OR REPLACE INTO schema_migrations VALUES (?, ?)",
+                      (1, message),
+                  )
+                  version = database.execute(
+                      "SELECT MAX(version) FROM schema_migrations"
+                  ).fetchone()[0]
+                  if version != 1:
+                      raise RuntimeError(f"Unexpected schema version: {version}")
+              time.sleep(5)
+              print(f"{timestamp()} Migration complete: schema version {version}", flush=True)
+          env:
+            - name: APP_MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: lab5-config
+                  key: APP_MESSAGE
+          volumeMounts:
+            - name: migration-data
+              mountPath: /migration
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: migration-data
+          emptyDir: {}

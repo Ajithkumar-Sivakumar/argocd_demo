@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: lab5
+  namespace: argocd
+spec:
+  description: Lab 5 Kustomize application environments
+  sourceRepos:
+    - https://github.com/Ajithkumar-Sivakumar/argocd_demo.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: lab5-dev
+    - server: https://kubernetes.default.svc
+      namespace: lab5-prod
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Service
+    - group: apps
+      kind: Deployment
+    - group: batch
+      kind: Job
